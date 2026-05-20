@@ -8,6 +8,36 @@ const SECRET = process.env.JWT_SECRET || 'miClaveSecretaSuperSegura2024'
 app.use(helmet({
     contentSecurityPolicy: false
 }))
+// ── Ruta raíz - redirige al dashboard
+app.get('/', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Proxy Inverso - Grupo 5</title>
+            <style>
+                body { font-family: Arial; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+                       color: white; display: flex; justify-content: center; align-items: center; 
+                       height: 100vh; margin: 0; }
+                .container { text-align: center; }
+                h1 { font-size: 2.5em; margin: 0; }
+                p { font-size: 1.2em; color: #94a3b8; }
+                .btn { display: inline-block; margin-top: 20px; padding: 12px 24px; 
+                       background: #3b82f6; color: white; text-decoration: none; 
+                       border-radius: 6px; font-size: 1.1em; }
+                .btn:hover { background: #60a5fa; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🛡️ Proxy Inverso Inteligente</h1>
+                <p>Grupo 5 - Ingeniería de Software</p>
+                <a href="/metrics/dashboard" class="btn">Ir al Dashboard</a>
+            </div>
+        </body>
+        </html>
+    `)
+})
 app.use(express.json())
 
 // ── Métricas en memoria ────────────────────────────────────────
