@@ -11,7 +11,65 @@ app.use(express.json())
 
 // ── Usuario de prueba con 2FA pre-configurado ─────────────────
 // En producción esto estaría en una base de datos
-
+// ── Página de login (GET)
+app.get('/auth/login', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Login - Proxy Inverso</title>
+            <style>
+                body { font-family: Arial; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+                       color: white; display: flex; justify-content: center; align-items: center; 
+                       height: 100vh; margin: 0; }
+                .login-box { background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 12px; 
+                            width: 300px; border: 1px solid #334155; }
+                h1 { text-align: center; margin-top: 0; }
+                input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #334155; 
+                        border-radius: 6px; background: #1e293b; color: white; }
+                button { width: 100%; padding: 12px; background: #3b82f6; color: white; 
+                        border: none; border-radius: 6px; cursor: pointer; font-size: 1.1em; }
+                button:hover { background: #60a5fa; }
+                .info { color: #94a3b8; font-size: 0.9em; margin-top: 15px; }
+            </style>
+        </head>
+        <body>
+            <div class="login-box">
+                <h1>🔐 Login</h1>
+                <form id="loginForm">
+                    <input type="text" id="username" placeholder="Usuario" value="admin" required>
+                    <input type="password" id="password" placeholder="Contraseña" value="1234" required>
+                    <button type="submit">Continuar a 2FA</button>
+                    <div class="info">
+                        Usuario: <b>admin</b><br>
+                        Contraseña: <b>1234</b>
+                    </div>
+                </form>
+                <script>
+                    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const username = document.getElementById('username').value;
+                        const password = document.getElementById('password').value;
+                        
+                        const res = await fetch('/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username, password })
+                        });
+                        
+                        if (res.ok) {
+                            alert('Credenciales correctas. Ahora ingresa el código 2FA en el navegador de desarrollador.');
+                            console.log(await res.json());
+                        } else {
+                            alert('Credenciales incorrectas');
+                        }
+                    });
+                </script>
+            </div>
+        </body>
+        </html>
+    `)
+})
 // Secret 2FA fijo (predeterminado para pruebas)
 const SECRET_2FA = {
     base32: 'JBSWY3DPEBLW64TMMQ======',
