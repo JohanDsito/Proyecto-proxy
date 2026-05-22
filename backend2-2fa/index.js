@@ -6,7 +6,10 @@ const speakeasy = require('speakeasy')
 const app    = express()
 const SECRET = process.env.JWT_SECRET || 'miClaveSecretaSuperSegura2024'
 
-app.use(helmet())
+
+app.use(helmet({
+    contentSecurityPolicy: false
+}))
 app.use(express.json())
 
 // ── Usuario de prueba con 2FA pre-configurado ─────────────────
