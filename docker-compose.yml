@@ -1,7 +1,7 @@
 version: "3.9"
 
 networks:
-  red-interna:          # red privada, los backends no son visibles desde fuera
+  red-interna:
     driver: bridge
 
 services:
@@ -10,26 +10,9 @@ services:
     build: ./nginx
     container_name: nginx-proxy
     ports:
-      - "443:443"       # único punto de entrada desde tu navegador
-      - "80:80"         # redirige a 443
+      - "443:443"
+      - "80:80"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - red-interna
-    depends_on:
-      - backend1
-      - backend2-2fa
-
-  backend1:
-    build: ./backend1
-    container_name: backend1
-    networks:
-      - red-interna     # NO tiene puertos expuestos al exterior
-    environment:
-      - JWT_SECRET=miClaveSecretaSuperSegura2024
-
-  backend2-2fa:
-    build: ./backend2-2fa
-    container_name: backend2-2fa
-    networks:
-      - red-interna     # tampoco expuesto al exterior
-    environment:
-      - JWT_SECRET=miClaveSecretaSuperSegura2024
