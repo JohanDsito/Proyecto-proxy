@@ -15,6 +15,7 @@ app.use(express.json())
 // ── Usuario de prueba con 2FA pre-configurado ─────────────────
 // En producción esto estaría en una base de datos
 // ── Página de login (GET)
+// ── Página de login mejorada
 app.get('/auth/login', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -22,53 +23,111 @@ app.get('/auth/login', (req, res) => {
         <head>
             <title>Login - Proxy Inverso</title>
             <style>
-                body { font-family: Arial; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
-                       color: white; display: flex; justify-content: center; align-items: center; 
-                       height: 100vh; margin: 0; }
-                .login-box { background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 12px; 
-                            width: 300px; border: 1px solid #334155; }
-                h1 { text-align: center; margin-top: 0; }
-                input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #334155; 
-                        border-radius: 6px; background: #1e293b; color: white; }
-                button { width: 100%; padding: 12px; background: #3b82f6; color: white; 
-                        border: none; border-radius: 6px; cursor: pointer; font-size: 1.1em; }
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: 'Segoe UI', Arial; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+                       color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+                .login-box { background: rgba(30, 41, 59, 0.8); padding: 40px; border-radius: 12px; 
+                            width: 350px; border: 1px solid #334155; backdrop-filter: blur(10px); }
+                h1 { text-align: center; margin-bottom: 30px; font-size: 1.8em; }
+                input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #334155; 
+                        border-radius: 6px; background: #1e293b; color: white; font-size: 1em; }
+                input:focus { outline: none; border-color: #3b82f6; }
+                button { width: 100%; padding: 12px; margin-top: 15px; background: #3b82f6; color: white; 
+                        border: none; border-radius: 6px; cursor: pointer; font-size: 1.1em; font-weight: bold; }
                 button:hover { background: #60a5fa; }
-                .info { color: #94a3b8; font-size: 0.9em; margin-top: 15px; }
+                .info { color: #94a3b8; font-size: 0.9em; margin-top: 20px; padding-top: 20px; border-top: 1px solid #334155; }
+                .info strong { color: #60a5fa; }
+                .message { padding: 15px; margin-top: 15px; border-radius: 6px; text-align: center; display: none; }
+                .message.success { background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid #22c55e; display: block; }
+                .message.error { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; display: block; }
+                .step-indicator { text-align: center; color: #64748b; margin-bottom: 20px; font-size: 0.9em; }
             </style>
         </head>
         <body>
             <div class="login-box">
                 <h1>🔐 Login</h1>
-                <form id="loginForm">
-                    <input type="text" id="username" placeholder="Usuario" value="admin" required>
-                    <input type="password" id="password" placeholder="Contraseña" value="1234" required>
-                    <button type="submit">Continuar a 2FA</button>
+                <div id="step1">
+                    <div class="step-indicator">PASO 1 de 2: Credenciales</div>
+                    <input type="text" id="username" placeholder="Usuario" value="admin">
+                    <input type="password" id="password" placeholder="Contraseña" value="1234">
+                    <button onclick="login()">Continuar a 2FA</button>
                     <div class="info">
-                        Usuario: <b>admin</b><br>
-                        Contraseña: <b>1234</b>
+                        <strong>Demo:</strong> Usuario: <strong>admin</strong>, Contraseña: <strong>1234</strong>
                     </div>
-                </form>
-                <script>
-                    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-                        e.preventDefault();
-                        const username = document.getElementById('username').value;
-                        const password = document.getElementById('password').value;
-                        
-                        const res = await fetch('/auth/login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username, password })
-                        });
-                        
-                        if (res.ok) {
-                            alert('Credenciales correctas. Ahora ingresa el código 2FA en el navegador de desarrollador.');
-                            console.log(await res.json());
-                        } else {
-                            alert('Credenciales incorrectas');
-                        }
-                    });
-                </script>
+                </div>
+                <div id="step2" style="display:none;">
+                    <div class="step-indicator">PASO 2 de 2: Código 2FA</div>
+                    <input type="text" id="codigo" placeholder="Código 2FA (6 dígitos)" maxlength="6">
+                    <button onclick="verificar2fa()">Verificar 2FA</button>
+                    <div class="info">
+                        Abre <strong>Google Authenticator</strong> en tu teléfono y copia el código
+                    </div>
+                </div>
+                <div id="message" class="message"></div>
             </div>
+
+            <script>
+                async function login() {
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    
+                    const res = await fetch('/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    
+                    if (res.ok) {
+                        document.getElementById('step1').style.display = 'none';
+                        document.getElementById('step2').style.display = 'block';
+                        showMessage('✅ Credenciales correctas. Ingresa el código 2FA.', 'success');
+                    } else {
+                        showMessage('❌ Credenciales incorrectas', 'error');
+                    }
+                }
+
+                async function verificar2fa() {
+                    const username = document.getElementById('username').value;
+                    const codigo = document.getElementById('codigo').value;
+                    
+                    if (codigo.length !== 6) {
+                        showMessage('❌ El código debe tener 6 dígitos', 'error');
+                        return;
+                    }
+                    
+                    const res = await fetch('/auth/verificar-2fa', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, codigo })
+                    });
+                    
+                    if (res.ok) {
+                        const data = await res.json();
+                        showMessage('✅ Autenticación exitosa. Token: ' + data.token.substring(0, 30) + '...', 'success');
+                        console.log('JWT Token:', data.token);
+                        setTimeout(() => {
+                            alert('Autenticación completada. Tu JWT está en la consola (F12)');
+                        }, 500);
+                    } else {
+                        showMessage('❌ Código 2FA inválido', 'error');
+                        document.getElementById('codigo').value = '';
+                    }
+                }
+
+                function showMessage(msg, type) {
+                    const el = document.getElementById('message');
+                    el.textContent = msg;
+                    el.className = 'message ' + type;
+                }
+
+                // Permitir Enter en inputs
+                document.getElementById('password').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') login();
+                });
+                document.getElementById('codigo').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') verificar2fa();
+                });
+            </script>
         </body>
         </html>
     `)
